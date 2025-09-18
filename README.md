@@ -4,3 +4,5 @@ Quick conceptualization of agent team meant for red teaming SCADA systems with d
 There are probably terrible race conditions related to how we are handling states
 
 Technically this could be done simply with a commander and executor langgraph nodes, but we take a dedicated agent node + router approach for the sake of demonstration
+
+The network targets are hard coded to the gridguard docker setup from that repo

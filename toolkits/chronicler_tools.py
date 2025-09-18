@@ -26,7 +26,7 @@ def analyze_gridguardian_logs(attack_start_time: str | None = None, attack_durat
 
     # --- CONFIGURATION REQUIRED ---
     # Update these variables to match your GridGuardian Docker container setup.
-    container_name = "gridguard_dtt-anomaly_detector"  # <-- CHANGE THIS
+    container_name = "anomaly_detector"  # <-- CHANGE THIS
     log_path = "/usr/src/app/logs/anomaly_detector.log"       # <-- CHANGE THIS
     # --- END CONFIGURATION ---
 

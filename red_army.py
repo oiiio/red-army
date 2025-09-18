@@ -7,6 +7,10 @@ from agents.infiltrator import infiltrator_node
 from agents.saboteur import saboteur_node
 from agents.executioner import executioner_node
 from agents.chronicler import chronicler_node
+from mission_assessor import MissionAssessor
+
+# Initialize the mission assessor
+mission_assessor = MissionAssessor()
 
 # --- Define the Graph's Routing Logic ---
 
@@ -18,12 +22,25 @@ def agent_router(state: RedArmyState) -> str:
     # First, check if the plan is complete.
     if state["current_task_index"] >= len(state["plan"]):
         print("--- ROUTER: Plan complete. ---")
+        
+        # Generate comprehensive mission assessment report
+        print("\n" + "=" * 50)
+        print("GENERATING MISSION ASSESSMENT REPORT...")
+        print("=" * 50)
+        
+        assessment = mission_assessor.assess_mission_completion(state)
+        detailed_report = mission_assessor.generate_detailed_report(assessment, state)
+        
+        print(detailed_report)
+        
         # If the last action failed, loop back to the commander to replan.
-        if "FAILURE" in state["feedback"]:
-            print("--- ROUTER: Mission failed. Returning to Red Commander for replanning. ---")
+        if assessment["mission_status"] in ["FAILED", "INCOMPLETE"] and "FAILURE" in state.get("feedback", ""):
+            print("--- ROUTER: Mission assessment indicates failure. Returning to Red Commander for replanning. ---")
             return "commander"
         else:
-            print("--- ROUTER: Mission successful. Ending operation. ---")
+            mission_status = assessment["mission_status"]
+            confidence = assessment["confidence_score"]
+            print(f"--- ROUTER: Mission assessed as {mission_status} with {confidence:.1%} confidence. Ending operation. ---")
             return "__end__" 
     
     # If the plan is not complete, find the agent for the current task.

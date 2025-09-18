@@ -1,5 +1,5 @@
 from state import RedArmyState
-from toolkits.infiltrator_tools import scan_network_for_plcs
+from toolkits.infiltrator_tools import scan_network_for_plcs, discover_docker_networks, scan_docker_network_for_targets, reconnaissance_docker_environment
 from utils import parse_tool_call_safely, has_unresolved_placeholders
 
 def infiltrator_node(state: RedArmyState) -> dict:
@@ -22,6 +22,12 @@ def infiltrator_node(state: RedArmyState) -> dict:
                 if "subnet" not in args:
                     raise ValueError("scan_network_for_plcs requires 'subnet' parameter")
                 result = scan_network_for_plcs.invoke({"subnet": args["subnet"]})
+            elif func_name == "discover_docker_networks":
+                result = discover_docker_networks.invoke({})
+            elif func_name == "scan_docker_network_for_targets":
+                result = scan_docker_network_for_targets.invoke({})
+            elif func_name == "reconnaissance_docker_environment":
+                result = reconnaissance_docker_environment.invoke({})
             else:
                 # For now, just simulate other infiltrator tools
                 print(f"--- INFILTRATOR/TOOL: Executing {func_name} with args {args} ---")
