@@ -7,5 +7,10 @@ Technically this could be done simply with a commander and executor langgraph no
 
 FAISS seems approriate for text vectorstore
 
-9/18 saboteur now uses MITRE ICS techniques mapped to our attack functions, uses the FAISS store for contextual selection criteria
+9/18 
+- saboteur now uses MITRE ICS techniques mapped to our attack functions, uses the FAISS store for contextual selection criteria
+- added reporting node at the end
+
+
+
 
