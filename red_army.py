@@ -7,6 +7,7 @@ from agents.infiltrator import infiltrator_node
 from agents.saboteur import saboteur_node
 from agents.executioner import executioner_node
 from agents.chronicler import chronicler_node
+from agents.reporter import reporting_node
 from mission_assessor import MissionAssessor
 from rag_service import rag_service
 
@@ -49,8 +50,8 @@ def agent_router(state: RedArmyState) -> str:
         else:
             mission_status = assessment["mission_status"]
             confidence = assessment["confidence_score"]
-            print(f"--- ROUTER: Mission assessed as {mission_status} with {confidence:.1%} confidence. Ending operation. ---")
-            return "__end__" 
+            print(f"--- ROUTER: Mission assessed as {mission_status} with {confidence:.1%} confidence. Routing to final debriefing. ---")
+            return "reporter" 
     
     # If the plan is not complete, find the agent for the current task.
     next_agent = state["plan"][state["current_task_index"]]["agent"].lower()
@@ -68,6 +69,7 @@ workflow.add_node("infiltrator", infiltrator_node)
 workflow.add_node("saboteur", saboteur_node)
 workflow.add_node("executioner", executioner_node)
 workflow.add_node("chronicler", chronicler_node)
+workflow.add_node("reporter", reporting_node)
 
 # 2. Set the entry point - the Commander always starts
 workflow.set_entry_point("commander")
@@ -96,7 +98,10 @@ workflow.add_conditional_edges(
     agent_router,
 )
 
-# 5. Compile the graph
+# 5. Add the final reporting step - reporter always goes to END
+workflow.add_edge("reporter", END)
+
+# 6. Compile the graph
 app = workflow.compile()
 print("--- Red Army Workflow Graph (Advanced Architecture) Compiled Successfully ---")
 
