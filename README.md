@@ -1,5 +1,5 @@
 # red-army
-Quick conceptualization of agent team meant for red teaming SCADA systems with defensive agents (although probably more generalizable and will feature prompt-based goal creation). In particular, I want to test their effectiveness at creating problems between data handoffs. 
+Quick conceptualization of agent team meant for red teaming SCADA systems with defensive monitors ("agents"). Uses LLMS, RAG, MITRE ATT&CK mapping, 
 
 There are probably terrible race conditions related to how we are handling states
 

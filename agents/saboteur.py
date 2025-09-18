@@ -17,7 +17,9 @@ from toolkits.saboteur_tools import (
     manipulate_safety_timer,
     activate_emergency_bypass,
     corrupt_system_health_signature,
-    establish_covert_channel
+    establish_covert_channel,
+    # Advanced scenario execution capability
+    execute_attack_scenario
 )
 from utils import parse_tool_call_safely, has_unresolved_placeholders
 from rag_service import rag_service
@@ -169,12 +171,15 @@ def saboteur_node(state: RedArmyState) -> dict:
                 "fingerprint_openplc_defenses": fingerprint_openplc_defenses,
                 "analyze_document": analyze_document,
                 
-                # New specialized attack vector functions
+                # Specialized attack vector functions
                 "maintenance_override_bypass": maintenance_override_bypass,
                 "manipulate_safety_timer": manipulate_safety_timer,
                 "activate_emergency_bypass": activate_emergency_bypass,
                 "corrupt_system_health_signature": corrupt_system_health_signature,
-                "establish_covert_channel": establish_covert_channel
+                "establish_covert_channel": establish_covert_channel,
+                
+                # Advanced scenario execution capability
+                "execute_attack_scenario": execute_attack_scenario
             }
             
             if func_name in tool_map:
