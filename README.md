@@ -5,4 +5,7 @@ There are probably terrible race conditions related to how we are handling state
 
 Technically this could be done simply with a commander and executor langgraph nodes, but we take a dedicated agent node + router approach for the sake of demonstration
 
-The network targets are hard coded to the gridguard docker setup from that repo
+FAISS seems approriate for text vectorstore
+
+9/18 saboteur now uses MITRE ICS techniques mapped to our attack functions, uses the FAISS store for contextual selection criteria
+

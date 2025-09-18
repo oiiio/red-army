@@ -1,0 +1,185 @@
+{
+  "mitre_attack_ics_mapping": {
+    "description": "MITRE ATT&CK for ICS technique mapping to Saboteur attack functions",
+    "version": "1.0",
+    "techniques": {
+      "T0849": {
+        "name": "Manipulation of Safety Instrumented Functions",
+        "description": "Adversaries may manipulate or disable safety systems to accomplish their goals",
+        "mapped_functions": [
+          "manipulate_safety_timer",
+          "activate_emergency_bypass",
+          "maintenance_override_bypass"
+        ],
+        "selection_criteria": {
+          "stealth_priority": "activate_emergency_bypass",
+          "speed_priority": "maintenance_override_bypass", 
+          "persistence_priority": "manipulate_safety_timer"
+        },
+        "rag_context_keywords": ["safety", "interlock", "bypass", "emergency", "timer", "maintenance"]
+      },
+      "T0836": {
+        "name": "Modify Parameter",
+        "description": "Adversaries may modify parameters used by system control logic",
+        "mapped_functions": [
+          "manipulate_safety_timer",
+          "corrupt_system_health_signature"
+        ],
+        "selection_criteria": {
+          "stealth_priority": "manipulate_safety_timer",
+          "persistence_priority": "corrupt_system_health_signature"
+        },
+        "rag_context_keywords": ["parameter", "modify", "timer", "signature", "configuration"]
+      },
+      "T0835": {
+        "name": "Manipulate I/O Image", 
+        "description": "Adversaries may manipulate the I/O image of PLCs through various means",
+        "mapped_functions": [
+          "activate_emergency_bypass",
+          "establish_covert_channel"
+        ],
+        "selection_criteria": {
+          "direct_priority": "activate_emergency_bypass",
+          "covert_priority": "establish_covert_channel"
+        },
+        "rag_context_keywords": ["I/O", "image", "coil", "output", "bypass", "channel"]
+      },
+      "T0856": {
+        "name": "Spoof Reporting Message",
+        "description": "Adversaries may spoof reporting messages in control systems",
+        "mapped_functions": [
+          "corrupt_system_health_signature",
+          "establish_covert_channel"
+        ],
+        "selection_criteria": {
+          "corruption_priority": "corrupt_system_health_signature",
+          "communication_priority": "establish_covert_channel"
+        },
+        "rag_context_keywords": ["spoof", "message", "reporting", "signature", "health", "communication"]
+      },
+      "T0858": {
+        "name": "Change Operating Mode",
+        "description": "Adversaries may change the operating mode of a controller to manipulate I/O",
+        "mapped_functions": [
+          "maintenance_override_bypass",
+          "establish_covert_channel"
+        ],
+        "selection_criteria": {
+          "maintenance_priority": "maintenance_override_bypass",
+          "debug_priority": "establish_covert_channel"
+        },
+        "rag_context_keywords": ["operating mode", "maintenance", "debug", "override", "mode"]
+      },
+      "T0832": {
+        "name": "Manipulation of View",
+        "description": "Adversaries may attempt to manipulate the information reported back to operators",
+        "mapped_functions": [
+          "corrupt_system_health_signature",
+          "establish_covert_channel"
+        ],
+        "selection_criteria": {
+          "status_manipulation": "corrupt_system_health_signature",
+          "covert_reporting": "establish_covert_channel"
+        },
+        "rag_context_keywords": ["view", "manipulation", "operator", "display", "status", "health"]
+      },
+      "T0855": {
+        "name": "Unauthorized Command Message",
+        "description": "Adversaries may send unauthorized command messages to control system components",
+        "mapped_functions": [
+          "maintenance_override_bypass",
+          "manipulate_safety_timer", 
+          "activate_emergency_bypass",
+          "corrupt_system_health_signature"
+        ],
+        "selection_criteria": {
+          "immediate_impact": "maintenance_override_bypass",
+          "stealth_command": "activate_emergency_bypass",
+          "parameter_command": "manipulate_safety_timer",
+          "persistence_command": "corrupt_system_health_signature"
+        },
+        "rag_context_keywords": ["unauthorized", "command", "message", "control", "write", "modbus"]
+      },
+      "T0868": {
+        "name": "Detect Operating Mode",
+        "description": "Adversaries may gather information about a PLC's or controller's current operating mode",
+        "mapped_functions": [
+          "establish_covert_channel"
+        ],
+        "selection_criteria": {
+          "reconnaissance": "establish_covert_channel"
+        },
+        "rag_context_keywords": ["detect", "operating mode", "reconnaissance", "debug", "monitoring"]
+      }
+    }
+  },
+  "execution_strategies": {
+    "stealth_focused": {
+      "description": "Prioritize techniques with lowest detection risk",
+      "preferred_order": [
+        "establish_covert_channel",
+        "activate_emergency_bypass", 
+        "manipulate_safety_timer",
+        "corrupt_system_health_signature",
+        "maintenance_override_bypass"
+      ]
+    },
+    "speed_focused": {
+      "description": "Prioritize techniques with fastest execution",
+      "preferred_order": [
+        "maintenance_override_bypass",
+        "activate_emergency_bypass",
+        "corrupt_system_health_signature", 
+        "manipulate_safety_timer",
+        "establish_covert_channel"
+      ]
+    },
+    "persistence_focused": {
+      "description": "Prioritize techniques that provide ongoing access",
+      "preferred_order": [
+        "corrupt_system_health_signature",
+        "establish_covert_channel",
+        "manipulate_safety_timer",
+        "activate_emergency_bypass",
+        "maintenance_override_bypass"
+      ]
+    }
+  },
+  "function_metadata": {
+    "maintenance_override_bypass": {
+      "stealth_level": "LOW",
+      "detection_risk": "HIGH", 
+      "execution_speed": "FAST",
+      "persistence": "NONE",
+      "description": "Write 0xDEADBEEF to maintenance override register"
+    },
+    "manipulate_safety_timer": {
+      "stealth_level": "MEDIUM",
+      "detection_risk": "MEDIUM",
+      "execution_speed": "FAST", 
+      "persistence": "TEMPORARY",
+      "description": "Modify safety timer preset within acceptable range"
+    },
+    "activate_emergency_bypass": {
+      "stealth_level": "HIGH",
+      "detection_risk": "MEDIUM",
+      "execution_speed": "FAST",
+      "persistence": "TEMPORARY", 
+      "description": "Enable emergency bypass coil for immediate control"
+    },
+    "corrupt_system_health_signature": {
+      "stealth_level": "LOW",
+      "detection_risk": "HIGH",
+      "execution_speed": "FAST",
+      "persistence": "PERMANENT",
+      "description": "Corrupt health signature for persistent backdoor"
+    },
+    "establish_covert_channel": {
+      "stealth_level": "VERY_HIGH",
+      "detection_risk": "LOW", 
+      "execution_speed": "MEDIUM",
+      "persistence": "SESSION",
+      "description": "Use debug mode for steganographic C2 communication"
+    }
+  }
+}
