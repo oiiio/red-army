@@ -7,7 +7,8 @@ from toolkits.saboteur_tools import (
     create_dual_vector_attack_sequence,
     create_adaptive_attack_sequence,
     reconnaissance_openplc_system,
-    fingerprint_openplc_defenses
+    fingerprint_openplc_defenses,
+    analyze_document
 )
 from utils import parse_tool_call_safely, has_unresolved_placeholders
 
@@ -35,7 +36,8 @@ def saboteur_node(state: RedArmyState) -> dict:
                 "create_dual_vector_attack_sequence": create_dual_vector_attack_sequence,
                 "create_adaptive_attack_sequence": create_adaptive_attack_sequence,
                 "reconnaissance_openplc_system": reconnaissance_openplc_system,
-                "fingerprint_openplc_defenses": fingerprint_openplc_defenses
+                "fingerprint_openplc_defenses": fingerprint_openplc_defenses,
+                "analyze_document": analyze_document
             }
             
             if func_name in tool_map:

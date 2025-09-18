@@ -4,8 +4,10 @@ import subprocess
 import re
 from datetime import datetime, timedelta
 from langchain_core.tools import tool
+from shared_tools import analyze_document
 
 # This module contains the toolkit for the Chronicler Agent.
+# Note: analyze_document is imported from shared_tools for consistency across agents
 
 @tool
 def analyze_gridguardian_logs(attack_start_time: str | None = None, attack_duration_minutes: int = 60) -> str:

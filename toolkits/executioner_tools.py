@@ -6,8 +6,10 @@ from langchain_core.tools import tool
 from scapy.all import send
 from scapy.layers.inet import TCP, IP
 from scapy.contrib.modbus import ModbusADURequest, ModbusPDU03ReadHoldingRegistersRequest, ModbusPDU10WriteMultipleRegistersRequest
+from shared_tools import analyze_document
 
 # This module contains the toolkit for the Executioner Agent.
+# Note: analyze_document is imported from shared_tools for consistency across agents
 
 @tool
 def execute_direct_attack(target_ip: str, plc_register: int, value: int) -> str:

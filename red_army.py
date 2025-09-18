@@ -8,9 +8,18 @@ from agents.saboteur import saboteur_node
 from agents.executioner import executioner_node
 from agents.chronicler import chronicler_node
 from mission_assessor import MissionAssessor
+from rag_service import rag_service
 
 # Initialize the mission assessor
 mission_assessor = MissionAssessor()
+
+# Initialize the RAG service for document analysis
+print("--- Initializing RAG Service for Document Analysis ---")
+rag_initialized = rag_service.initialize()
+if rag_initialized:
+    print("--- RAG Service: Successfully initialized ---")
+else:
+    print("--- RAG Service: Initialization failed, falling back to simple text search ---")
 
 # --- Define the Graph's Routing Logic ---
 

@@ -1,5 +1,5 @@
 from state import RedArmyState
-from toolkits.infiltrator_tools import scan_network_for_plcs, discover_docker_networks, scan_docker_network_for_targets, reconnaissance_docker_environment
+from toolkits.infiltrator_tools import scan_network_for_plcs, discover_docker_networks, scan_docker_network_for_targets, reconnaissance_docker_environment, analyze_document
 from utils import parse_tool_call_safely, has_unresolved_placeholders
 
 def infiltrator_node(state: RedArmyState) -> dict:
@@ -28,6 +28,10 @@ def infiltrator_node(state: RedArmyState) -> dict:
                 result = scan_docker_network_for_targets.invoke({})
             elif func_name == "reconnaissance_docker_environment":
                 result = reconnaissance_docker_environment.invoke({})
+            elif func_name == "analyze_document":
+                if "query" not in args:
+                    raise ValueError("analyze_document requires 'query' parameter")
+                result = analyze_document.invoke({"query": args["query"]})
             else:
                 # For now, just simulate other infiltrator tools
                 print(f"--- INFILTRATOR/TOOL: Executing {func_name} with args {args} ---")

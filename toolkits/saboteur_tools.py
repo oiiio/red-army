@@ -5,10 +5,12 @@ from langchain_core.tools import tool
 from scapy.all import send
 from scapy.layers.inet import TCP, IP
 from scapy.contrib.modbus import ModbusADURequest, ModbusPDU10WriteMultipleRegistersRequest
+from shared_tools import analyze_document
 
 # --- OT_Forge Toolkit for the Saboteur Agent ---
 # This toolkit contains the specialized functions for crafting and disguising
 # attacks against Operational Technology (OT) systems like PLCs.
+# Note: analyze_document is imported from shared_tools for consistency across agents
 
 @tool
 def craft_modbus_exploit_packet(target_ip: str, plc_register: int, value: int) -> str:

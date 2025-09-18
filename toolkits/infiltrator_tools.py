@@ -1,11 +1,15 @@
 # toolkits/infiltrator_tools.py
 
+from dotenv import load_dotenv
 import nmap
 import subprocess
 import json
+import os
 from langchain_core.tools import tool
+from shared_tools import analyze_document
 
 # This module contains the toolkit for the Infiltrator Agent.
+# Note: analyze_document is imported from shared_tools for consistency across agents
 
 @tool
 def discover_docker_networks() -> str:

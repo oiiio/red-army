@@ -1,5 +1,5 @@
 from state import RedArmyState
-from toolkits.executioner_tools import execute_direct_attack, execute_evasion_sequence
+from toolkits.executioner_tools import execute_direct_attack, execute_evasion_sequence, analyze_document
 from utils import parse_tool_call_safely, has_unresolved_placeholders
 
 def executioner_node(state: RedArmyState) -> dict:
@@ -23,6 +23,8 @@ def executioner_node(state: RedArmyState) -> dict:
                 # The argument for this tool is the *output* of a previous Saboteur task
                 args = {"sequence_plan_str": state["task_output"]}
                 result = execute_evasion_sequence.invoke(args)
+            elif func_name == "analyze_document":
+                result = analyze_document.invoke(args)
             else:
                 # Simulate other executioner tools
                 print(f"--- EXECUTIONER/TOOL: Simulating {func_name} with args {args} ---")
