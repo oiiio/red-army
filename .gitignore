@@ -5,3 +5,9 @@
 .env.local
 .env.production
 *.env
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+# Jupyter Notebook checkpoints

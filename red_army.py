@@ -1,71 +1,86 @@
+# red_army.py
+
 from langgraph.graph import StateGraph, END
 from state import RedArmyState
 from agents.commander import red_commander_node
-from agents.executor import tool_executor_node
+from agents.infiltrator import infiltrator_node
+from agents.saboteur import saboteur_node
+from agents.executioner import executioner_node
+from agents.chronicler import chronicler_node
 
-# --- Define the Graph's Logic ---
+# --- Define the Graph's Routing Logic ---
 
-def should_continue(state: RedArmyState) -> str:
+def agent_router(state: RedArmyState) -> str:
     """
-    This is the conditional edge that decides the next step.
-    It's the core of the adaptive logic.
+    This is the conditional router that directs the workflow to the correct agent
+    based on the current step in the plan.
     """
-    print("--- ORCHESTRATOR: Evaluating next step... ---")
-    
-    # Check if the plan is finished.
+    # First, check if the plan is complete.
     if state["current_task_index"] >= len(state["plan"]):
-        print("--- ORCHESTRATOR: Plan complete. ---")
-        
-        # If the last action failed (based on Chronicler's feedback),
-        # loop back to the commander to replan.
+        print("--- ROUTER: Plan complete. ---")
+        # If the last action failed, loop back to the commander to replan.
         if "FAILURE" in state["feedback"]:
-            print("--- ORCHESTRATOR: Mission failed. Returning to Red Commander for replanning. ---")
-            return "replan"
+            print("--- ROUTER: Mission failed. Returning to Red Commander for replanning. ---")
+            return "commander"
         else:
-            print("--- ORCHESTRATOR: Mission successful. Ending operation. ---")
-            return "end"
-    else:
-        # If the plan is not finished, continue to the next task.
-        print("--- ORCHESTRATOR: Plan has more steps. Continuing to Tool Executor. ---")
-        return "continue"
+            print("--- ROUTER: Mission successful. Ending operation. ---")
+            return "__end__" 
+    
+    # If the plan is not complete, find the agent for the current task.
+    next_agent = state["plan"][state["current_task_index"]]["agent"].lower()
+    print(f"--- ROUTER: Next task for {next_agent}. ---")
+    return next_agent
+
 
 # --- Build the Graph ---
 
-# 1. Initialize the StateGraph with our RedArmyState
 workflow = StateGraph(RedArmyState)
 
-# 2. Add the nodes to the graph. These are our agents.
+# 1. Add all our dedicated agent nodes
 workflow.add_node("commander", red_commander_node)
-workflow.add_node("executor", tool_executor_node)
+workflow.add_node("infiltrator", infiltrator_node)
+workflow.add_node("saboteur", saboteur_node)
+workflow.add_node("executioner", executioner_node)
+workflow.add_node("chronicler", chronicler_node)
 
-# 3. Set the entry point. The Red Commander always starts the mission.
+# 2. Set the entry point - the Commander always starts
 workflow.set_entry_point("commander")
 
-# 4. Add the edges that define the flow.
-workflow.add_edge("commander", "executor")
-
-# 5. Add the conditional edge for the adaptive loop.
+# 3. Add the main routing logic. After the commander plans, the router decides who goes next.
 workflow.add_conditional_edges(
-    "executor",
-    should_continue,
-    {
-        "continue": "executor", # If plan continues, loop back to the executor
-        "replan": "commander",   # If plan fails, go back to the commander
-        "end": END               # If plan succeeds, end the graph
-    }
+    "commander",
+    agent_router,
 )
 
-# 6. Compile the graph into a runnable application.
+# 4. Create the main work loop. After any specialist agent finishes, the router decides who goes next.
+workflow.add_conditional_edges(
+    "infiltrator",
+    agent_router,
+)
+workflow.add_conditional_edges(
+    "saboteur",
+    agent_router,
+)
+workflow.add_conditional_edges(
+    "executioner",
+    agent_router,
+)
+workflow.add_conditional_edges(
+    "chronicler",
+    agent_router,
+)
+
+# 5. Compile the graph
 app = workflow.compile()
-print("--- Red Army Workflow Graph Compiled Successfully ---")
+print("--- Red Army Workflow Graph (Advanced Architecture) Compiled Successfully ---")
+
 
 # --- Run the Mission ---
-
 if __name__ == "__main__":
     print("\n--- INITIATING RED ARMY DEFENSIVE EXERCISE ---")
     
     # Define the initial state for the mission.
-    initial_state = {
+    initial_state = RedArmyState({
         "objective": "Test the GridGuardian's defenses. First, attempt a direct attack on the substation PLC. If detected, adapt the plan to use a stealthy, model-evasion technique to achieve the same goal (open the circuit breaker).",
         "plan": [],
         "current_task_index": 0,
@@ -73,20 +88,13 @@ if __name__ == "__main__":
         "feedback": "Mission has not started yet. Proceed with the initial plan.",
         "history": [],
         "revision_number": 0,
-    }
+    })
 
     # The 'stream' method executes the graph and returns all intermediate steps.
     for event in app.stream(initial_state, {"recursion_limit": 25}):
         # The key of the dictionary is the name of the node that just ran.
         node_that_ran = list(event.keys())[0]
-        # The value is the state *after* that node ran.
-        state_after_node = list(event.values())[0]
+        print(f"\n--- Turn Complete: Agent '{node_that_ran}' has finished. ---")
+        print("-" * 50)
         
-        print(f"\n--- Turn Complete: {node_that_ran} ---")
-        print("Updated State:")
-        # Pretty print the feedback and task output for clarity
-        print(f"  - Feedback: {state_after_node.get('feedback')}")
-        print(f"  - Last Task Output: {state_after_node.get('task_output')}")
-        print("-" * 40)
-
-    print("--- RED ARMY MISSION COMPLETE ---")
+    print("\n--- RED ARMY MISSION COMPLETE ---")
